@@ -21,16 +21,12 @@ cleanup() {
     for (( i=1; i<=NUM_IPS; i++ )); do
         docker network rm "${MOBILE_NETWORK_PREFIX}_${i}" >/dev/null 2>&1
     done
-    docker network rm macvlan_net >/dev/null 2>&1
+    
+    docker network rm nats_backbone >/dev/null 2>&1
 
     log_info "4. Removing temporary state directory..."
     if [ -d "$STATE_DIR" ]; then
         rm -rf "$STATE_DIR"
-    fi
-
-    if [ -n "$CLIENT_CREDS_FILE_PATH" ] && [ -f "$CLIENT_CREDS_FILE_PATH" ]; then
-        rm -f "$CLIENT_CREDS_FILE_PATH"
-        log_info "Removed temporary client credentials file."
     fi
     
     log_success "--- Cleanup Complete ---"

@@ -21,7 +21,6 @@ SUBSCRIBER OPTIONS:
   --sub-batch INT       Max subscribers to add/remove each second. (Default: $SUB_BATCH_SIZE)
 
 GENERAL OPTIONS:
-  -i, --interface IFACE Name of the parent network interface. (Default: auto-detected)
   -n, --num-subjects INT Number of unique subjects. (Default: $NUM_SUBJECTS)
   -k, --num-ips INT     Number of unique 'gateway' IPs/networks. (Default: $NUM_IPS)
   -s, --spread SECS     Max random delay (in seconds) before a container starts publishing. (Default: $SPREAD)
@@ -85,7 +84,7 @@ update_status() {
 }
 
 check_deps() {
-    for cmd in docker nmap; do
+    for cmd in docker; do
         if ! command -v "$cmd" &> /dev/null; then
             log_error "Required command '$cmd' is not installed or not on your PATH." >&2
             exit 1
@@ -99,7 +98,6 @@ parse_args() {
         case $key in
             -a|--ca) CA_FILE_PATH="$2"; shift 2 ;;
             -p|--lb-ip) LOADBALANCER_IP="$2"; shift 2 ;;
-            -i|--interface) PARENT_INTERFACE="$2"; shift 2 ;;
             --pub-limit) PUB_LIMIT="$2"; shift 2 ;;
             --pub-batch) PUB_BATCH_SIZE="$2"; shift 2 ;;
             --interval) PUB_BATCH_INTERVAL_SECONDS="$2"; shift 2 ;;
@@ -118,7 +116,7 @@ validate_inputs() {
     check_deps
 
     if [ "$EUID" -ne 0 ]; then
-        log_error "This script must be run with 'sudo' in order to do nmap scan to find available ips." >&2
+        log_error "This script must be run with 'sudo' in order to do docker network creation." >&2
         exit 1
     fi
 
@@ -128,22 +126,17 @@ validate_inputs() {
         exit 1
     fi
 
-    CLIENT_CREDS_FILE_PATH=$(mktemp)
-
-    if ! curl -sS -f -L -o "$CLIENT_CREDS_FILE_PATH" "$CLIENT_CREDS_LINK"; then
-        log_error "Failed to download client credentials from '$CLIENT_CREDS_LINK'." >&2
-        rm -f "$CLIENT_CREDS_FILE_PATH"
-        exit 1
+    # Check if Bus credentials exist
+    if [ -z "$BUS_CREDS_FILE_PATH" ] || [ ! -f "$BUS_CREDS_FILE_PATH" ]; then
+        log_error "Bus credentials file not found or not specified. Use --bus-creds <path>."
     fi
+    BUS_CREDS_FILE_PATH=$(realpath "$BUS_CREDS_FILE_PATH")
 
-    BUS_CREDS_FILE_PATH=$(mktemp)
-
-    if ! curl -sS -f -L -o "$BUS_CREDS_FILE_PATH" "$BUS_CREDS_LINK"; then
-        log_error "Failed to download client credentials from '$BUS_CREDS_LINK'." >&2
-        rm -f "$BUS_CREDS_FILE_PATH"
-        exit 1
+    # Check if Client credentials exist
+    if [ -z "$CLIENT_CREDS_FILE_PATH" ] || [ ! -f "$CLIENT_CREDS_FILE_PATH" ]; then
+        log_error "Client credentials file not found or not specified. Use --client-creds <path>."
     fi
-
+    CLIENT_CREDS_FILE_PATH=$(realpath "$CLIENT_CREDS_FILE_PATH")
 
     CA_FILE_PATH=$(realpath "$CA_FILE_PATH")
     if [ ! -f "$CA_FILE_PATH" ]; then log_error "CA certificate file '$CA_FILE_PATH' not found." >&2; exit 1; fi
