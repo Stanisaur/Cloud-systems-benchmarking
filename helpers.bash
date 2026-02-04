@@ -24,6 +24,8 @@ GENERAL OPTIONS:
   -n, --num-subjects INT Number of unique subjects. (Default: $NUM_SUBJECTS)
   -k, --num-ips INT     Number of unique 'gateway' IPs/networks. (Default: $NUM_IPS)
   -s, --spread SECS     Max random delay (in seconds) before a container starts publishing. (Default: $SPREAD)
+  --noserver            Disable network simulation. Skips server creation and connects 
+                        gateways to the host network.
   -h, --help            Display this help message and exit.
 EOF
 }
@@ -41,6 +43,7 @@ print_config() {
     echo "Container Limit:       $SUB_LIMIT"
     echo "Churn Rate (per sec):  Up to $SUB_BATCH_SIZE"
     echo "--- General -----------------------------------------------------------------"
+    echo "Server Setup:          $( [ "$NO_SERVER" = true ] && echo "DISABLED (Host Network)" || echo "ENABLED" )"
     echo "Gateway IPs/Networks:  $NUM_IPS"
     echo "Subjects:              $NUM_SUBJECTS"
     echo "============================================================================="
@@ -102,6 +105,7 @@ parse_args() {
             --interval) PUB_BATCH_INTERVAL_SECONDS="$2"; shift 2 ;;
             --sub-limit) SUB_LIMIT="$2"; shift 2 ;;
             --sub-batch) SUB_BATCH_SIZE="$2"; shift 2 ;;
+            --noserver) NO_SERVER=true; shift ;;
             -n|--num-subjects) NUM_SUBJECTS="$2"; shift 2 ;;
             -k|--num-ips) NUM_IPS="$2"; shift 2 ;;
             -s|--spread) SPREAD="$2"; shift 2 ;;
@@ -109,6 +113,12 @@ parse_args() {
             *) log_error "Unknown option '$1'" >&2; show_help; exit 1 ;;
         esac
     done
+}
+
+get_default_subnet() {
+    local ip=$1
+    # Strip the last octet and replace with 0/24
+    echo "${ip%.*}.0/24"
 }
 
 validate_inputs() {
@@ -132,6 +142,9 @@ validate_inputs() {
         log_error "'$LOADBALANCER_IP' is not a valid IPv4 address." >&2; exit 1
     fi
 
-    TARGET_SUBNET="10.11.0.0/24"
-    log_info "Using bridge mode. Target subnet set to $TARGET_SUBNET"
+    if [ -z "$TARGET_SUBNET" ]; then
+        TARGET_SUBNET=$(get_default_subnet "$LOADBALANCER_IP")
+        log_info "Auto-detected target subnet: $TARGET_SUBNET"
+    fi
+
 }

@@ -2,12 +2,19 @@ setup() {
     log_info "--- Running Simplified Setup ---"
     local GATEWAY_ID_FILE="$STATE_DIR/gateway_ids.txt"
 
-    # 1. Create the backbone network
-    docker network create nats_backbone --subnet 10.11.0.0/24 >/dev/null 2>&1 || true
+    if [ "$NO_SERVER" = true ]; then
+        log_info "Skipping server setup (--noserver flag set)."
+        server_network="host"
+    else
+        log_info "Setting up server"
+        server_network="nats_backbone"
+        # 1. Create the backbone network
+        docker network create nats_backbone --subnet 10.11.0.0/24 >/dev/null 2>&1 || true
 
-    server_id=$(docker run --rm -d --network nats_backbone --ip 10.11.0.2 -v "$(pwd)":/etc/nats -p 4222:4222 -p 443:443 nats:latest -c /etc/nats/server.conf)
+        server_id=$(docker run --rm -d --network nats_backbone --ip 10.11.0.2 -v "$(pwd)":/etc/nats -p 4222:4222 -p 443:443 nats:latest -c /etc/nats/server.conf)
 
-    echo "$server_id" > "$STATE_DIR/server.txt";
+        echo "$server_id" > "$STATE_DIR/server.txt"
+    fi
 
     # 2. start the almighty global clock
     clock_id=$(docker run -d \
@@ -35,7 +42,7 @@ setup() {
         # Start gateway on the backbone network
         local new_gateway_id
         new_gateway_id=$(docker run -d \
-            --network nats_backbone \
+            --network "$server_network" \
             --user root --cap-add NET_ADMIN \
             --sysctl net.ipv4.ip_forward=1 \
             --name "$gateway_name" \
