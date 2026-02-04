@@ -25,6 +25,9 @@ cleanup() {
     done
 
     log_info "3. Removing Docker networks..."
+
+    docker network rm nats_backbone >/dev/null 2>&1
+
     for (( i=1; i<=NUM_IPS; i++ )); do
         docker network rm "${MOBILE_NETWORK_PREFIX}_${i}" >/dev/null 2>&1
     done
