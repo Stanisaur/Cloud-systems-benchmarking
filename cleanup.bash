@@ -3,6 +3,13 @@
 
 cleanup() {
     log_info "Interruption received, cleaning up all benchmark resources ---"
+    
+    log_info "Interruption received, cleaning up all benchmark resources ---"
+    
+    log_info "0. Killing background publisher/subscriber loops..."
+    # 'jobs -p' lists the PIDs of background tasks; kill -9 ensures they stop immediately
+    jobs -p | xargs -r kill -9 >/dev/null 2>&1
+    
     # Unset the trap to prevent infinite loops on cleanup errors
     trap - ERR
 
