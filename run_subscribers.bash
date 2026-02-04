@@ -20,9 +20,27 @@ start_subscribers() {
             local route_number; route_number=$(pick_bucket_configurable "$NUM_SUBJECTS" "$SPREAD")
 
             local sub_cmd="\
-            nats sub 'FG.FGLA.${route_number}' --timeout ${ALLOWED_TIMEOUT} --server wss://${NATS_SERVER_HOSTNAME}:443 --tlsca /data/ca.crt \
-             | awk -F',' '{print (systime()*1000000000 - \$4)}' >> /logs/latency.log"
-            
+                MY_IP=\$(hostname -i); \
+                nats sub --raw 'FG.FGLA.${route_number}' --server wss://${NATS_SERVER_HOSTNAME}:443 --tlsca /data/ca.crt | while read -r line; do \
+                    echo \"\$line\" | awk -v ip=\"\$MY_IP\" '
+                        BEGIN {
+                            # Read current clock from SHM and strip the decimal to get total nanoseconds
+                            getline clock < \"/dev/shm/global_clock\";
+                            close(\"/dev/shm/global_clock\");
+                            split(clock, parts, \".\");
+                            now_ns = (parts[1] parts[2]);
+                        }
+                        {
+                            # NATS input format: field 4 is pub_ns
+                            split(\$0, fields, \",\");
+                            pub_ns = fields[4];
+                            
+                            # Calculate latency in milliseconds and output with IP
+                            latency_ms = int((now_ns - pub_ns) / 1000000);
+                            print ip, latency_ms;
+                        }
+                    ' >> /logs/${LOG_FILENAME}; \
+                done"
 
             local gateway_ip_on_mobile_net="10.10.${ip_bucket}.2"
             local new_id
@@ -33,6 +51,7 @@ start_subscribers() {
                 --add-host "$NATS_SERVER_HOSTNAME":"$LOADBALANCER_IP" \
                 -v "$CA_FILE_PATH":/data/ca.crt:ro \
                 -v "$(pwd)/bench_logs:/logs" \
+                -v /dev/shm:/dev/shm:ro \
                 natsio/nats-box:latest \
                 sh -c "ip route add $TARGET_SUBNET via $gateway_ip_on_mobile_net; $sub_cmd")
 

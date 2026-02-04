@@ -7,6 +7,16 @@ setup() {
 
     docker run --rm -d --network nats_backbone --ip 10.11.0.2 -v "$(pwd)":/etc/nats -p 4222:4222 -p 443:443 nats:latest -c /etc/nats/server.conf
 
+    # 2. start the almighty global clock
+    clock_id=$(docker run -d \
+    --name global_clock_master \
+    --privileged \
+    -v ./timing/global_time:/usr/local/bin/global_time \
+    -v /dev/shm:/dev/shm \
+    natsio/nats-box:latest global_time)
+
+    echo "$clock_id" > "$STATE_DIR/global_clock_master.txt";
+
     log_info "2. Starting up $NUM_IPS SNAT gateway containers..."
     for (( i=1; i<=NUM_IPS; i++ ));
     do

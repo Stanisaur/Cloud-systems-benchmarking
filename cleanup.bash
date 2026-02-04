@@ -5,7 +5,7 @@ cleanup() {
     log_info "Interruption received, cleaning up all benchmark resources ---"
     
     log_info "Interruption received, cleaning up all benchmark resources ---"
-    
+
     log_info "0. Killing background publisher/subscriber loops..."
     # 'jobs -p' lists the PIDs of background tasks; kill -9 ensures they stop immediately
     jobs -p | xargs -r kill -9 >/dev/null 2>&1
@@ -14,7 +14,7 @@ cleanup() {
     trap - ERR
 
     if [ -d "$STATE_DIR" ]; then
-        log_info "1. Removing client and gateway containers..."
+        log_info "1. Removing clock, client and gateway containers..."
         # Using cat and xargs is robust for a large number of containers
         cat "$STATE_DIR"/*.txt 2>/dev/null | xargs -P 4 -n 20 --no-run-if-empty docker rm -f >/dev/null 2>&1
     fi

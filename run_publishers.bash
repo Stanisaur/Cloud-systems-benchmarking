@@ -51,22 +51,25 @@ start_publishers() {
 
             local publisher_loop
             printf -v publisher_loop \
-            '
-            while true; do
-                RAND_NUM=$(od -An -N2 -tu2 /dev/urandom)
-                lat=55.$((RAND_NUM %% 9000))
-                RAND_NUM=$(od -An -N2 -tu2 /dev/urandom)
-                lon=-4.$((RAND_NUM %% 3000)) 
-                RAND_NUM=$(od -An -N2 -tu2 /dev/urandom)
-                journey_ref=$((RAND_NUM %% 50))
-                TIMESTAMP=$(date +%%s%%N)
-                msg="[$journey_ref,$lat,$lon,$TIMESTAMP,%s]"
-                echo "${msg}"
-                nats --server wss://%s:443 --timeout %s pub %s "$msg" --tlsca /data/ca.crt
-                sleep 1
-            done
-            ' \
-            "$subject" "$NATS_SERVER_HOSTNAME" "$ALLOWED_TIMEOUT" "$subject"
+                '
+                while true; do
+                    RAND_NUM=$(od -An -N2 -tu2 /dev/urandom)
+                    lat=55.$((RAND_NUM %% 9000))
+                    RAND_NUM=$(od -An -N2 -tu2 /dev/urandom)
+                    lon=-4.$((RAND_NUM %% 3000)) 
+                    RAND_NUM=$(od -An -N2 -tu2 /dev/urandom)
+                    journey_ref=$((RAND_NUM %% 50))
+                    
+                    # Pull from RAM and strip the dot to match your 19-digit integer format
+                    TIMESTAMP=$(awk '\''{gsub(/\./, ""); print $1}'\'' /dev/shm/global_clock)
+                    
+                    msg="$journey_ref,$lat,$lon,$TIMESTAMP,%s"
+                    echo "${msg}"
+                    nats --server wss://%s:443 --timeout %s pub %s "$msg" --tlsca /data/ca.crt
+                    sleep 1
+                done
+                ' \
+                "$subject" "$NATS_SERVER_HOSTNAME" "$ALLOWED_TIMEOUT" "$subject"
 
             local gateway_ip_on_mobile_net="10.10.${ip_bucket}.2"
             local new_container_id
@@ -76,6 +79,7 @@ start_publishers() {
                 --cap-add NET_ADMIN \
                 --add-host "$NATS_SERVER_HOSTNAME":"$LOADBALANCER_IP" \
                 -v "$CA_FILE_PATH":/data/ca.crt:ro \
+                -v /dev/shm:/dev/shm:ro \
                 natsio/nats-box:latest \
                 sh -c "ip route add $TARGET_SUBNET via $gateway_ip_on_mobile_net; $publisher_loop")
 

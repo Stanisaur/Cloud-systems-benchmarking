@@ -13,6 +13,7 @@ SPREAD=15
 ALLOWED_TIMEOUT=20s #seconds, need this with high volume cause host machine struggles to assign networking stuff to container
 # Attempt to auto-detect the default network interface.
 PARENT_INTERFACE=$(ip route | grep '^default' | awk '{print $5}' | head -n1 || echo "")
+LOG_FILENAME="latency_$(date +%Y%m%d_%H%M%S).log"
 
 # --- Paths (to be set by arguments) ---
 BUS_CREDS_FILE_PATH=""
