@@ -1,6 +1,36 @@
 ## Benchmarking
 
- You will need adequate RAM, depending on how large your benchmark is. as a rough guide, 1500 subscribers and 800 publishers requires ~9GB RAM. 
+ You will need adequate RAM, depending on how large your benchmark is. as a rough guide, 1500 subscribers and 800 publishers requires ~9GB RAM. By default this setup creates a nats server container to publish to, run with `--noserver` flag and point to the IP of your server with `-p` flag to run without.
+
+ Results for each run are stored in ./bench_logs, here is example output(for a run with all artificial network conditions set to zero), first column is IP of container which is a unique ID and tells you what gateway it belongs to, and the second column is latency in milliseconds(there is so much noise with traffic control that further precision is of questionable use):
+
+ ```shell
+ 10.10.2.3 2
+10.10.8.3 0
+10.10.21.3 1
+10.10.2.3 0
+10.10.8.3 0
+10.10.18.3 0
+10.10.29.3 0
+10.10.21.3 0
+10.10.2.3 0
+10.10.8.3 0
+10.10.29.3 0
+10.10.18.3 0
+10.10.21.3 0
+10.10.2.3 0
+10.10.8.3 0
+10.10.29.3 0
+10.10.18.3 0
+10.10.21.3 0
+10.10.2.3 0
+```
+
+### Quickstart
+
+```shell
+./controller.bash -a certificates/rootCA.crt -p 10.11.0.2
+```
 
 ### How It Works
 1.  **Network Setup:** The `setup.bash` script creates a clock container, optionally a server.
@@ -8,8 +38,7 @@
 3.  **Client Simulation:** The `run_publishers.bash` and `run_subscribers.bash` scripts then launch thousands of `nats-box` containers. Each container connects through one of the simulated gateways to the NATS server, creating a realistic, high-churn, high-volume environment.
 
 ### Running the Benchmark
-The main controller script orchestrates the entire process. Quite a few parameters to be dealt with, see config.bash for all options
-.There are a a few [sysctl](https://man7.org/linux/man-pages/man8/sysctl.8.html) parameters to configure, see [99-high-perf-net.conf](./99-high-perf-net.conf) for specifics:
+The main controller script orchestrates the entire process. Quite a few parameters to be dealt with, see config.bash for all options. It's reccomended to configure the sysctl params but it does run without it for runs with low numbers of overall containers. There are a a few [sysctl](https://man7.org/linux/man-pages/man8/sysctl.8.html) parameters to configure, see [99-high-perf-net.conf](./99-high-perf-net.conf) for specifics:
 ```shell
 sudo cp ./99-high-perf-net.conf /etc/sysctl.d/99-high-perf-net.conf
 sudo sysctl -p /etc/sysctl.d/99-high-perf-net.conf
