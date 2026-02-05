@@ -19,28 +19,21 @@ start_subscribers() {
             local ip_bucket=$(( (RANDOM % NUM_IPS) + 1 ))
             local route_number; route_number=$(pick_bucket_configurable "$NUM_SUBJECTS" "$SPREAD")
 
-            local sub_cmd="\
-                MY_IP=\$(hostname -i); \
-                nats sub --raw 'FG.FGLA.${route_number}' --server wss://${NATS_SERVER_HOSTNAME}:443 --tlsca /data/ca.crt | while read -r line; do \
-                    echo \"\$line\" | awk -v ip=\"\$MY_IP\" '
-                        BEGIN {
-                            # Read current clock from SHM and strip the decimal to get total nanoseconds
-                            getline clock < \"/dev/shm/global_clock\";
-                            close(\"/dev/shm/global_clock\");
-                            split(clock, parts, \".\");
-                            now_ns = (parts[1] parts[2]);
-                        }
-                        {
-                            # NATS input format: field 4 is pub_ns
-                            split(\$0, fields, \",\");
-                            pub_ns = fields[4];
-                            
-                            # Calculate latency in milliseconds and output with IP
-                            latency_ms = int((now_ns - pub_ns) / 1000000);
-                            print ip, latency_ms;
-                        }
-                    ' >> /logs/${LOG_FILENAME}; \
-                done"
+            local awk_logic='
+            {
+                if ((getline clock < "/dev/shm/global_clock") > 0) {
+                    close("/dev/shm/global_clock");
+                    split(clock, parts, ".");
+                    now_ns = (parts[1] parts[2]);
+                }
+                split($0, fields, ",");
+                pub_ns = fields[4];
+                latency_ms = int((now_ns - pub_ns) / 1000000);
+                print ip, latency_ms;
+                fflush();
+            }'
+
+            local sub_cmd="MY_IP=\$(hostname -i); nats sub --raw 'FG.FGLA.${route_number}' --server wss://${NATS_SERVER_HOSTNAME}:443 --tlsca /data/ca.crt | awk -v ip=\"\$MY_IP\" '$awk_logic' >> /logs/${LOG_FILENAME}"
 
             local gateway_ip_on_mobile_net="10.10.${ip_bucket}.2"
             local new_id
