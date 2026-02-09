@@ -10,7 +10,7 @@ setup() {
         server_network="nats_backbone"
         # 1. Create the backbone network
         docker network create nats_backbone --subnet 10.11.0.0/24 >/dev/null 2>&1 || true
-
+        NATS_SERVER_HOSTNAME="10.11.0.2"
         server_id=$(docker run --rm -d --network nats_backbone --ip 10.11.0.2 -v "$(pwd)":/etc/nats -p 443:443 nats:latest -c /etc/nats/server.conf)
 
         echo "$server_id" > "$STATE_DIR/server.txt"
