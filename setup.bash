@@ -71,7 +71,7 @@ setup() {
     clock_id=$(docker run -d \
     --name global_clock_master \
     --privileged \
-    -v ./timing/global_time:/usr/local/bin/global_time \
+    -v "$(pwd)/timing/global_time:/usr/local/bin/global_time" \
     -v /dev/shm:/dev/shm \
     natsio/nats-box:latest global_time)
 
