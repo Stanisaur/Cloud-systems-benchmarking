@@ -54,6 +54,8 @@ setup() {
     log_info "Setting up backbone network for gateways"
     docker network create nats_backbone --subnet 10.11.0.0/24 >/dev/null 2>&1 || true
 
+    generate_certs "$NATS_SERVER_HOSTNAME" # need to do this before we set up the darned server
+
     if [ "$NO_SERVER" = true ]; then
         log_info "Skipping server setup (--noserver flag set)."
     else
@@ -64,7 +66,6 @@ setup() {
         echo "$server_id" > "$STATE_DIR/server.txt"
     fi
 
-    generate_certs "$NATS_SERVER_HOSTNAME"
 
     # 2. start the almighty global clock
     clock_id=$(docker run -d \
