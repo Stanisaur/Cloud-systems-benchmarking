@@ -53,7 +53,7 @@ start_publishers() {
             printf -v publisher_loop \
                 'nats pub --server wss://%s:443 --timeout %s --tlsca /data/ca.crt \
                 --count 1000000 --sleep 1s --templates \
-                "%s" "{{Random 2 2}},55.{{Random 4 4}},-4.{{Random 4 4}},{{UnixNano}},%s"' \
+                "%s" "{{Random 2 2}},55.{{Random 4 4}},-4.{{Random 4 4}},{{UnixNano}},%s,$HOSTNAME"' \
                 "$NATS_SERVER_HOSTNAME" "$ALLOWED_TIMEOUT" "$subject" "$subject"
 
             local gateway_ip_on_mobile_net="10.10.${ip_bucket}.2"
