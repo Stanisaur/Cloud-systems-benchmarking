@@ -1,2 +1,4 @@
 /bench_logs
 # certificates/
+/analysis/plots
+/analysis/.venv
