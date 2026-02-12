@@ -30,6 +30,6 @@ readonly CLIENT_CREDS_LINK="https://bus-infra-demo.com/client.creds"
 readonly BUS_CREDS_LINK="https://bus-infra-demo.com/client.creds"
 readonly MOBILE_NETWORK_PREFIX="mobile_net"
 # --- Latency Metrics ---
-readonly U_LATENCY=220; readonly U_JITTER=100; readonly U_LOSS=3;
-readonly D_LATENCY=100; readonly D_JITTER=50; readonly D_LOSS=1;
-readonly CORRELATION=25;
+readonly U_LATENCY=0; readonly U_JITTER=0; readonly U_LOSS=0;
+readonly D_LATENCY=0; readonly D_JITTER=0; readonly D_LOSS=0;
+readonly CORRELATION=0;
